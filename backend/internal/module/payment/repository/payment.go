@@ -60,8 +60,15 @@ func (r *Payment) ListPayments(status, sort, id string) ([]*entity.Payment, erro
 		if err := rows.Scan(&p.ID, &p.Merchant, &p.Amount, &p.Status, &createdAt); err != nil {
 			return nil, entity.WrapError(err, entity.ErrorCodeInternal, "scan error")
 		}
-		p.CreatedAt, _ = time.Parse("2006-01-02 15:04:05", createdAt)
+		parsed, err := time.Parse("2006-01-02 15:04:05", createdAt)
+		if err != nil {
+			return nil, entity.WrapError(err, entity.ErrorCodeInternal, "time parse error")
+		}
+		p.CreatedAt = parsed
 		payments = append(payments, &p)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, entity.WrapError(err, entity.ErrorCodeInternal, "row iteration error")
 	}
 	return payments, nil
 }
