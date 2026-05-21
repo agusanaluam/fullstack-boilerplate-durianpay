@@ -60,9 +60,13 @@ func (r *Payment) ListPayments(status, sort, id string) ([]*entity.Payment, erro
 		if err := rows.Scan(&p.ID, &p.Merchant, &p.Amount, &p.Status, &createdAt); err != nil {
 			return nil, entity.WrapError(err, entity.ErrorCodeInternal, "scan error")
 		}
-		parsed, err := time.Parse("2006-01-02 15:04:05", createdAt)
+		// Try RFC3339 format first (SQLite DATETIME default), then fallback to custom format
+		parsed, err := time.Parse(time.RFC3339, createdAt)
 		if err != nil {
-			return nil, entity.WrapError(err, entity.ErrorCodeInternal, "time parse error")
+			parsed, err = time.Parse("2006-01-02 15:04:05", createdAt)
+			if err != nil {
+				return nil, entity.WrapError(err, entity.ErrorCodeInternal, "time parse error")
+			}
 		}
 		p.CreatedAt = parsed
 		payments = append(payments, &p)
