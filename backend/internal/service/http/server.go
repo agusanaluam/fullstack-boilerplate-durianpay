@@ -9,7 +9,10 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/durianpay/fullstack-boilerplate/internal/config"
+	mw "github.com/durianpay/fullstack-boilerplate/internal/middleware"
 	"github.com/durianpay/fullstack-boilerplate/internal/openapigen"
+	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/go-chi/chi/v5"
 	oapinethttpmw "github.com/oapi-codegen/nethttp-middleware"
 )
@@ -30,22 +33,35 @@ func NewServer(apiHandler openapigen.ServerInterface, openapiYamlPath string) *S
 		log.Fatalf("failed to load swagger: %v", err)
 	}
 
+	wrapper := &openapigen.ServerInterfaceWrapper{
+		Handler: apiHandler,
+		ErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		},
+	}
+
 	r := chi.NewRouter()
 
-	r.Route("/", func(api chi.Router) {
-		api.Use(oapinethttpmw.OapiRequestValidatorWithOptions(
+	// Public route — no JWT required
+	r.Post("/dashboard/v1/auth/login", wrapper.PostDashboardV1AuthLogin)
+
+	// Protected routes — JWT + OpenAPI validation
+	r.Group(func(protected chi.Router) {
+		protected.Use(mw.JWTAuth(config.JwtSecret))
+		protected.Use(oapinethttpmw.OapiRequestValidatorWithOptions(
 			swagger,
 			&oapinethttpmw.Options{
 				DoNotValidateServers:  true,
 				SilenceServersWarning: true,
+				Options: openapi3filter.Options{
+					AuthenticationFunc: openapi3filter.NoopAuthenticationFunc,
+				},
 			},
 		))
-		openapigen.HandlerFromMux(apiHandler, api)
+		protected.Get("/dashboard/v1/payments", wrapper.GetDashboardV1Payments)
 	})
 
-	return &Server{
-		router: r,
-	}
+	return &Server{router: r}
 }
 
 func (s *Server) Start(addr string) {
@@ -58,19 +74,16 @@ func (s *Server) Start(addr string) {
 	}
 	go func() {
 		log.Printf("listening on %s", addr)
-		err := service.ListenAndServe()
-		if err != nil {
+		if err := service.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatal(err.Error())
 		}
 	}()
 
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
-
 	<-stop
 	log.Println("Shutting down gracefully...")
 
-	// Timeout for shutdown
 	const shutdownTimeout = 10 * time.Second
 	ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 	defer cancel()
@@ -78,8 +91,7 @@ func (s *Server) Start(addr string) {
 	if err := service.Shutdown(ctx); err != nil {
 		log.Fatalf("Forced shutdown: %v", err)
 	}
-
-	log.Println("Server stopped cleanly ✔")
+	log.Println("Server stopped cleanly")
 }
 
 func (s *Server) Routes() http.Handler {
