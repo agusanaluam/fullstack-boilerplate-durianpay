@@ -16,13 +16,12 @@ Internal dashboard for monitoring incoming payments. Go backend (existing boiler
 | Layer | Choice |
 |---|---|
 | Backend | Go 1.21+, Chi router, oapi-codegen |
-| Backend DB | MongoDB (replaces SQLite) |
-| Backend Cache | Redis (payments query cache) |
+| Backend DB | SQLite (existing `database/sql` pattern) |
 | Frontend | Vue 3 + TypeScript |
 | Frontend UI | shadcn-vue + Tailwind CSS |
 | Frontend State | Pinia |
 | Frontend API client | @hey-api/openapi-ts (generated from `openapi.yaml`) |
-| Containerisation | Docker Compose (4 services) |
+| Containerisation | Docker Compose (2 services) |
 
 ---
 
@@ -36,20 +35,17 @@ Internal dashboard for monitoring incoming payments. Go backend (existing boiler
 │  hey-api client │               │  JWT middleware  │
 └─────────────────┘               └────────┬─────────┘
                                            │
-                               ┌───────────┴───────────┐
-                               │                       │
-                    ┌──────────▼──────────┐  ┌─────────▼────────┐
-                    │   MongoDB  :27017   │  │  Redis   :6379   │
-                    │  users collection  │  │  payments cache  │
-                    │  payments collection│  │  TTL: 60s        │
-                    └─────────────────────┘  └──────────────────┘
+                                ┌──────────▼──────────┐
+                                │   SQLite (file)     │
+                                │   dashboard.db      │
+                                │   users table       │
+                                │   payments table    │
+                                └─────────────────────┘
 ```
 
 **Docker Compose services:**
-- `mongodb` — official mongo:7 image
-- `redis` — official redis:7-alpine image
-- `backend` — Go binary, depends_on: mongodb + redis
-- `frontend` — Node build served via Vite preview or nginx, depends_on: backend
+- `backend` — Go binary, mounts `dashboard.db` volume
+- `frontend` — Vite build served via nginx, depends_on: backend
 
 ---
 
@@ -60,58 +56,72 @@ Internal dashboard for monitoring incoming payments. Go backend (existing boiler
 ```
 backend/
 ├── internal/
-│   ├── db/
-│   │   ├── mongo.go          # MongoDB client + collection helpers
-│   │   └── redis.go          # Redis client setup
 │   ├── entity/
 │   │   ├── user.go           # existing — unchanged
 │   │   └── payment.go        # NEW: Payment struct
 │   ├── module/
-│   │   ├── auth/             # existing — repo rewritten for MongoDB
+│   │   ├── auth/             # existing — unchanged
 │   │   │   ├── handler/auth.go
 │   │   │   ├── usecase/auth.go
-│   │   │   └── repository/user.go   # rewrite: SQL → MongoDB
+│   │   │   └── repository/user.go
 │   │   └── payment/          # NEW module
 │   │       ├── handler/payment.go
-│   │       ├── usecase/payment.go   # Redis cache logic here
+│   │       ├── usecase/payment.go
 │   │       └── repository/payment.go
+│   ├── config/
+│   │   └── env.go            # existing — unchanged (no new env vars needed)
 │   └── api/
 │       └── api_handler.go    # wire new payment handler
-└── main.go                   # wire MongoDB + Redis clients, seed payments
+├── script/
+│   ├── gen-secret/main.go    # existing
+│   └── seed/main.go          # NEW: random payment + user seeder
+└── main.go                   # add payments table to initDB(), wire payment module
 ```
 
-### 4.2 MongoDB Collections
+### 4.2 SQLite Schema
 
-**`users`**
-```json
-{ "_id": ObjectId, "email": "cs@test.com", "password_hash": "...", "role": "cs" }
+Added to `initDB()` in `main.go`:
+
+```sql
+CREATE TABLE IF NOT EXISTS payments (
+  id         TEXT PRIMARY KEY,
+  merchant   TEXT NOT NULL,
+  amount     INTEGER NOT NULL,
+  status     TEXT NOT NULL CHECK(status IN ('completed','processing','failed')),
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 ```
 
-**`payments`** — seeded with 50 records at startup
-```json
-{
-  "_id": ObjectId,
-  "id": "PAY-001",
-  "merchant": "Merchant Alpha",
-  "amount": 150000,
-  "status": "completed",
-  "created_at": ISODate
+Existing `users` table unchanged.
+
+### 4.3 Payment Entity
+
+**`internal/entity/payment.go`:**
+```go
+package entity
+
+import "time"
+
+type Payment struct {
+    ID        string    `json:"id"`
+    Merchant  string    `json:"merchant"`
+    Amount    int64     `json:"amount"`
+    Status    string    `json:"status"`
+    CreatedAt time.Time `json:"created_at"`
 }
 ```
-Status distribution: ~60% completed, ~25% processing, ~15% failed.
 
-### 4.3 Environment Variables
+### 4.4 Environment Variables
 
+No new env vars needed. Existing `env.sample`:
 ```env
 HTTP_ADDR=:8080
-MONGODB_URI=mongodb://mongodb:27017
-MONGODB_DB=dashboard
-REDIS_ADDR=redis:6379
-JWT_SECRET=your-secret
+OPENAPIYAML_LOCATION=../openapi.yaml
+JWT_SECRET=your-very-secret
 JWT_EXPIRED=24h
 ```
 
-### 4.4 API Endpoints
+### 4.5 API Endpoints
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
@@ -120,16 +130,8 @@ JWT_EXPIRED=24h
 
 Query params for GET payments:
 - `status` — `completed` / `processing` / `failed`
-- `sort` — `-created_at` (desc) / `created_at` (asc) / `-amount` / `amount`
+- `sort` — `-created_at` (desc, default) / `created_at` (asc) / `-amount` / `amount`
 - `id` — exact payment ID match
-
-### 4.5 Redis Cache Strategy
-
-- **Key:** `payments:status={s}&sort={s}&id={s}` (empty string for unset params)
-- **TTL:** 60 seconds
-- **Hit:** return cached JSON bytes, skip MongoDB
-- **Miss:** query MongoDB → marshal → SET with TTL → return
-- **Invalidation:** TTL-based only (payments are read-only in this scope)
 
 ### 4.6 JWT Middleware
 
@@ -139,21 +141,32 @@ Custom Chi middleware that:
 3. Rejects with 401 if missing/expired/invalid
 4. Injects claims into `context.Context`
 
-Applied to all `/dashboard/v1/payments*` routes.
+Applied to all `/dashboard/v1/payments*` routes via Chi group in `server.go`.
 
-### 4.7 Backend Unit Tests
+### 4.7 Payment Repository
 
-- `internal/module/auth/usecase/auth_test.go`
-  - Login success
-  - Wrong password → 401
-  - User not found → 404
+**`internal/module/payment/repository/payment.go`** — uses `*sql.DB`, same pattern as existing user repo:
+
+```go
+type PaymentRepository interface {
+    ListPayments(status, sort, id string) ([]*entity.Payment, error)
+}
+```
+
+SQL query builds `WHERE` and `ORDER BY` dynamically based on non-empty params.
+
+### 4.8 Backend Unit Tests
+
+- `internal/module/auth/usecase/auth_test.go` (existing pattern, add if missing)
+  - Login success → returns token + user
+  - Wrong password → `ErrorCodeUnauthorized`
+  - User not found → `ErrorCodeNotFound`
 - `internal/module/payment/usecase/payment_test.go`
-  - List all payments (cache miss → DB)
-  - Filter by status
-  - Cache hit skips DB call
-  - Sort applied correctly
+  - List all payments → returns full list
+  - Filter by status → passes status to repo
+  - Sort param forwarded correctly
 
-Mock interfaces: `UserRepository`, `PaymentRepository`, `CacheClient`.
+Mock interfaces: `UserRepository`, `PaymentRepository`.
 
 ---
 
@@ -164,86 +177,92 @@ Mock interfaces: `UserRepository`, `PaymentRepository`, `CacheClient`.
 ```
 frontend/
 ├── src/
-│   ├── api/              # @hey-api/openapi-ts generated client
-│   │   └── generated/    # auto-generated, do not edit
+│   ├── api/
+│   │   └── generated/        # @hey-api/openapi-ts output — do not edit
 │   ├── components/
-│   │   ├── ui/           # shadcn-vue primitives (Button, Input, Badge, Select, Table…)
+│   │   ├── ui/               # shadcn-vue primitives (Button, Input, Badge, Select, Table)
 │   │   ├── PaymentTable.vue
 │   │   ├── SummaryCards.vue
-│   │   ├── StatusFilter.vue
 │   │   └── AppSidebar.vue
 │   ├── pages/
 │   │   ├── LoginPage.vue
 │   │   └── DashboardPage.vue
 │   ├── stores/
-│   │   ├── auth.ts       # Pinia: token, role, login(), logout()
-│   │   └── payments.ts   # Pinia: list, filters, summary counts, fetchPayments()
+│   │   ├── auth.ts           # Pinia: token, role, login(), logout()
+│   │   └── payments.ts       # Pinia: list, filters, summary, fetchPayments()
 │   ├── router/
-│   │   └── index.ts      # Vue Router: / → login, /dashboard → protected
+│   │   └── index.ts          # Vue Router: / → login, /dashboard → protected
 │   └── main.ts
-├── openapi-ts.config.ts  # hey-api config pointing to ../../openapi.yaml
-└── vite.config.ts        # proxy /dashboard → http://backend:8080
+├── openapi-ts.config.ts      # hey-api config → ../../openapi.yaml
+└── vite.config.ts            # proxy /dashboard → http://localhost:8080
 ```
 
 ### 5.2 Pages
 
 **LoginPage (`/`)**
 - Split layout: left purple gradient panel (brand + tagline) / right white card form
-- Fields: email, password (with show/hide toggle)
+- Fields: email + password (show/hide toggle)
 - On submit: call generated `postDashboardV1AuthLogin()`, store token + role in `authStore`, redirect to `/dashboard`
-- On error: show inline error banner
+- On error: inline error banner
 - Font: Arial
 
 **DashboardPage (`/dashboard`)**
-- Protected: Vue Router navigation guard checks `authStore.token`, redirects to `/` if missing
+- Protected: navigation guard checks `authStore.token`, redirects to `/` if null
 - Layout: fixed left sidebar + scrollable main content
-- Sidebar: logo, nav item "Payments" (active + badge count), user chip with role + logout button
+- Sidebar: logo, "Payments" nav item (active + total badge), user chip (email + role) + logout button
 - Main: topbar (title + date) → 4 summary cards → table section
-- Summary cards: Total / Completed / Processing / Failed — counts derived from full unfiltered list
-- Table: columns Payment ID, Merchant, Date, Amount, Status
-- Filters: search input (by ID or merchant, client-side) + status dropdown + sort dropdown
+- Summary cards: Total / Completed / Processing / Failed — derived from full unfiltered fetch
+- Table columns: Payment ID, Merchant, Date, Amount, Status
+- Filters: search input (client-side, by ID or merchant) + status dropdown + sort dropdown
 - Status badge colors: green (completed), amber (processing), red (failed)
 - Pagination: client-side, 10 rows per page
 
 ### 5.3 Pinia Stores
 
-**`authStore`**
+**`authStore`** (`stores/auth.ts`):
 ```ts
 state: { token: string | null, role: string | null }
-actions: login(email, password), logout()
-persist: localStorage
+actions: login(email: string, password: string): Promise<void>
+         logout(): void
+persist: localStorage via pinia-plugin-persistedstate
 ```
 
-**`paymentsStore`**
+**`paymentsStore`** (`stores/payments.ts`):
 ```ts
 state: {
-  payments: Payment[],
-  loading: boolean,
-  error: string | null,
-  filterStatus: string,
-  filterSort: string,
-  filterSearch: string
+  payments: Payment[]
+  loading: boolean
+  error: string | null
+  filterStatus: string   // '' | 'completed' | 'processing' | 'failed'
+  filterSort: string     // '-created_at' | 'created_at' | '-amount' | 'amount'
+  filterSearch: string   // client-side text filter
 }
-getters: { summary, filteredPayments }
-actions: fetchPayments(status?, sort?, id?)
+getters: {
+  summary: { total, completed, processing, failed }
+  filteredPayments: Payment[]   // search applied client-side
+}
+actions: fetchPayments(): Promise<void>   // calls API with filterStatus + filterSort
 ```
 
 ### 5.4 OpenAPI Client Generation
 
-```bash
-cd frontend && npx @hey-api/openapi-ts \
-  --input ../openapi.yaml \
-  --output src/api/generated \
-  --client fetch
+Config `openapi-ts.config.ts`:
+```ts
+import { defineConfig } from '@hey-api/openapi-ts'
+export default defineConfig({
+  input: '../openapi.yaml',
+  output: 'src/api/generated',
+  plugins: ['@hey-api/client-fetch'],
+})
 ```
 
-Run via `npm run gen:api`. Generated types used directly in stores and components — no manual type definitions for API shapes.
+Run: `npm run gen:api` (`npx @hey-api/openapi-ts`). Generated types used directly in stores — no manual API type definitions.
 
 ### 5.5 Frontend Tests
 
-- `PaymentTable.spec.ts` — renders rows, filter pills update visible rows
-- `SummaryCards.spec.ts` — correct counts from mock payment list
-- `authStore.spec.ts` — login sets token, logout clears state
+- `src/stores/auth.spec.ts` — login stores token/role, logout clears state
+- `src/components/SummaryCards.spec.ts` — correct counts from mock payment array
+- `src/components/PaymentTable.spec.ts` — renders rows, status badge correct color
 - Tool: Vitest + Vue Test Utils
 
 ---
@@ -252,31 +271,26 @@ Run via `npm run gen:api`. Generated types used directly in stores and component
 
 ```yaml
 services:
-  mongodb:
-    image: mongo:7
-    ports: ["27017:27017"]
-    volumes: [mongo_data:/data/db]
-
-  redis:
-    image: redis:7-alpine
-    ports: ["6379:6379"]
-
   backend:
     build: ./backend
     ports: ["8080:8080"]
-    env_file: ./backend/.env.docker
-    depends_on: [mongodb, redis]
+    volumes: ["sqlite_data:/app/data"]
+    environment:
+      - HTTP_ADDR=:8080
+      - JWT_SECRET=dev-secret-replace-me
+      - JWT_EXPIRED=24h
+      - OPENAPIYAML_LOCATION=../openapi.yaml
 
   frontend:
     build: ./frontend
-    ports: ["3000:3000"]
+    ports: ["3000:80"]
     depends_on: [backend]
 
 volumes:
-  mongo_data:
+  sqlite_data:
 ```
 
-`backend/.env.docker` uses `mongodb://mongodb:27017` and `redis:6379` (Docker network hostnames).
+`dashboard.db` stored at `/app/data/dashboard.db` inside container via volume mount.
 
 **One-command startup:**
 ```bash
@@ -288,36 +302,61 @@ docker-compose up --build
 ## 7. Root Makefile Targets
 
 ```makefile
-dev-backend   # cd backend && make run
-dev-frontend  # cd frontend && npm run dev
-gen-api       # cd frontend && npm run gen:api
-test-backend  # cd backend && go test ./...
-test-frontend # cd frontend && npm run test
-up            # docker-compose up --build
-down          # docker-compose down
+dev-backend:
+    cd backend && make run
+
+dev-frontend:
+    cd frontend && npm run dev
+
+gen-api:
+    cd frontend && npm run gen:api
+
+seed:
+    cd backend && go run ./script/seed/main.go
+
+test-backend:
+    cd backend && go test ./...
+
+test-frontend:
+    cd frontend && npm run test
+
+up:
+    docker-compose up --build
+
+down:
+    docker-compose down
 ```
 
 ---
 
 ## 8. Seed Data
 
-Backend `main.go` seeds on startup (idempotent — skips if payments collection non-empty):
-- 2 users: `cs@test.com` / `operation@test.com`, password: `password`
-- 50 payments: random merchants, amounts (Rp 10,000–Rp 500,000), mixed statuses
+Dedicated script: `backend/script/seed/main.go`. Run via `make seed`.
+
+**Behavior:**
+- Idempotent — skips if `payments` table already has rows
+- Opens same SQLite file (`dashboard.db`) as the app
+- Seeds 2 users: `cs@test.com` + `operation@test.com`, password `password` (bcrypt hashed) — skips if users already exist
+- Seeds 50 payments with `math/rand`:
+  - `id`: sequential `PAY-001` … `PAY-050`
+  - `merchant`: random pick from pool of 15 merchant names
+  - `amount`: random Rp 10,000–500,000 rounded to nearest 1,000
+  - `status`: weighted — 60% `completed`, 25% `processing`, 15% `failed`
+  - `created_at`: random timestamp within last 90 days
 
 ---
 
 ## 9. Testing Strategy (for README)
 
-**Backend:** Table-driven unit tests with mock interfaces. Auth usecase tests cover happy path + error cases. Payment usecase tests cover cache hit/miss + filter/sort logic. Run: `go test ./...`
+**Backend:** Table-driven unit tests with mock interfaces. Auth usecase tests cover happy path + error branches. Payment usecase tests verify filter/sort params forwarded correctly to repo. Run: `cd backend && go test ./...`
 
-**Frontend:** Vitest component tests for critical views (SummaryCards, PaymentTable) and Pinia store tests (authStore). Run: `npm run test`
+**Frontend:** Vitest + Vue Test Utils. Store tests verify state transitions. Component tests verify rendering with mock data. Run: `cd frontend && npm run test`
 
 ---
 
 ## 10. Out of Scope
 
-- `PUT /dashboard/v1/payment/{id}/review` — not in PDF requirements
+- `PUT /dashboard/v1/payment/{id}/review`
 - Dark mode
-- Real-time payment updates (WebSocket)
+- Real-time updates (WebSocket)
 - Role-based feature differences beyond login

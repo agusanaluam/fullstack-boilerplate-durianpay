@@ -1,0 +1,40 @@
+<h2>3 Architecture Approaches</h2>
+<p class="subtitle">Pick the overall architecture for the payment dashboard</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Pinia + SQLite — Recommended</h3>
+      <p>Vue 3 Pinia for state, payments seeded in SQLite (same DB as users). Clean layered Go backend following existing handler/usecase/repo pattern. Docker Compose wraps both services.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4><ul><li>Data persists across restarts</li><li>Matches existing codebase pattern</li><li>Production-realistic</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Slightly more backend work (SQL seed + repo)</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Pinia + In-Memory</h3>
+      <p>Payments stored in a Go slice (no DB migration). Seed data hardcoded at startup. Frontend identical to Option A.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4><ul><li>Fastest backend implementation</li><li>Zero DB schema changes</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Data resets on restart</li><li>Less impressive to reviewers</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Pinia + SQLite + Vue Query</h3>
+      <p>Same as A but adds TanStack Vue Query for server state (caching, background refetch, loading states). More complex setup.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4><ul><li>Best server-state UX (auto-refetch, stale-while-revalidate)</li><li>Shows advanced frontend knowledge</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Extra dependency, more complex</li><li>Overkill for a dashboard with no real-time data</li></ul></div>
+      </div>
+    </div>
+  </div>
+</div>

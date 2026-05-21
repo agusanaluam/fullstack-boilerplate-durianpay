@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login Mockup</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; background: #f1f5f9; color: #1e293b; min-height: 100vh; display: flex; }
+
+  /* Left panel */
+  .left-panel {
+    width: 45%; background: linear-gradient(145deg, #6366f1 0%, #8b5cf6 60%, #a78bfa 100%);
+    display: flex; flex-direction: column; justify-content: center; align-items: flex-start;
+    padding: 3rem;
+    position: relative; overflow: hidden;
+  }
+  .left-panel::before {
+    content: '';
+    position: absolute; top: -60px; right: -60px;
+    width: 280px; height: 280px; border-radius: 50%;
+    background: rgba(255,255,255,0.07);
+  }
+  .left-panel::after {
+    content: '';
+    position: absolute; bottom: -80px; left: -40px;
+    width: 320px; height: 320px; border-radius: 50%;
+    background: rgba(255,255,255,0.05);
+  }
+  .brand-logo {
+    width: 48px; height: 48px; background: white; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem; font-weight: 900; color: #6366f1;
+    margin-bottom: 2rem; position: relative; z-index: 1;
+  }
+  .left-panel h1 { font-size: 1.9rem; font-weight: 700; color: white; line-height: 1.3; margin-bottom: 1rem; position: relative; z-index: 1; }
+  .left-panel p { font-size: 0.9rem; color: rgba(255,255,255,0.75); line-height: 1.6; position: relative; z-index: 1; max-width: 300px; }
+
+  .stats-row {
+    display: flex; gap: 1.5rem; margin-top: 2.5rem; position: relative; z-index: 1;
+  }
+  .stat-item .val { font-size: 1.4rem; font-weight: 700; color: white; }
+  .stat-item .lbl { font-size: 0.72rem; color: rgba(255,255,255,0.65); margin-top: 0.15rem; }
+
+  /* Right panel */
+  .right-panel {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    padding: 2rem;
+  }
+  .login-card {
+    background: white; border-radius: 16px; border: 1px solid #e2e8f0;
+    padding: 2.5rem; width: 100%; max-width: 380px;
+  }
+  .login-card h2 { font-size: 1.3rem; font-weight: 700; color: #0f172a; margin-bottom: 0.4rem; }
+  .login-card .subtitle { font-size: 0.82rem; color: #94a3b8; margin-bottom: 2rem; }
+
+  .field { margin-bottom: 1.1rem; }
+  .field label { display: block; font-size: 0.78rem; font-weight: 700; color: #374151; margin-bottom: 0.4rem; }
+  .field input {
+    width: 100%; border: 1px solid #e2e8f0; border-radius: 8px;
+    padding: 0.65rem 0.85rem; font-size: 0.85rem; color: #1e293b;
+    background: white; outline: none; font-family: Arial, sans-serif;
+  }
+  .field input:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
+  .field input::placeholder { color: #cbd5e1; }
+
+  .field-password { position: relative; }
+  .field-password input { padding-right: 2.5rem; }
+  .eye-icon {
+    position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%);
+    color: #94a3b8; font-size: 0.85rem; cursor: pointer;
+  }
+
+  .error-msg {
+    background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px;
+    padding: 0.6rem 0.85rem; font-size: 0.78rem; color: #dc2626;
+    margin-bottom: 1rem; display: flex; align-items: center; gap: 0.4rem;
+  }
+
+  .btn-login {
+    width: 100%; padding: 0.7rem; border-radius: 8px;
+    background: #6366f1; color: white; font-size: 0.88rem; font-weight: 700;
+    border: none; cursor: pointer; font-family: Arial, sans-serif;
+    margin-top: 0.5rem;
+  }
+  .btn-login:hover { background: #4f46e5; }
+
+  .login-footer { margin-top: 1.5rem; text-align: center; font-size: 0.75rem; color: #94a3b8; }
+  .login-footer span { color: #6366f1; font-weight: 700; cursor: pointer; }
+
+  .divider { display: flex; align-items: center; gap: 0.75rem; margin: 1.25rem 0; }
+  .divider hr { flex: 1; border: none; border-top: 1px solid #f1f5f9; }
+  .divider span { font-size: 0.72rem; color: #cbd5e1; }
+
+  .seed-hint {
+    background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;
+    padding: 0.65rem 0.85rem; font-size: 0.75rem; color: #64748b;
+  }
+  .seed-hint strong { color: #374151; }
+</style>
+</head>
+<body>
+
+  <!-- Left decorative panel -->
+  <div class="left-panel">
+    <div class="brand-logo">P</div>
+    <h1>Payment<br>Monitor Dashboard</h1>
+    <p>Internal tool for monitoring and tracking all incoming payment transactions in real time.</p>
+    <div class="stats-row">
+      <div class="stat-item">
+        <div class="val">50+</div>
+        <div class="lbl">Transactions</div>
+      </div>
+      <div class="stat-item">
+        <div class="val">2</div>
+        <div class="lbl">User Roles</div>
+      </div>
+      <div class="stat-item">
+        <div class="val">99%</div>
+        <div class="lbl">Uptime</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right login form -->
+  <div class="right-panel">
+    <div class="login-card">
+      <h2>Welcome back</h2>
+      <p class="subtitle">Sign in to your account to continue</p>
+
+      <!-- Error state (shown on bad credentials) -->
+      <div class="error-msg">⚠ Invalid email or password. Please try again.</div>
+
+      <div class="field">
+        <label>Email address</label>
+        <input type="email" placeholder="cs@test.com" value="cs@test.com" />
+      </div>
+
+      <div class="field">
+        <label>Password</label>
+        <div class="field-password">
+          <input type="password" placeholder="••••••••" value="password" />
+          <span class="eye-icon">👁</span>
+        </div>
+      </div>
+
+      <button class="btn-login">Sign in →</button>
+
+      <div class="divider"><hr><span>test accounts</span><hr></div>
+
+      <div class="seed-hint">
+        <strong>cs@test.com</strong> / password — CS role<br>
+        <strong>operation@test.com</strong> / password — Operation role
+      </div>
+
+      <div class="login-footer">
+        DurianPay Internal · <span>Need help?</span>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

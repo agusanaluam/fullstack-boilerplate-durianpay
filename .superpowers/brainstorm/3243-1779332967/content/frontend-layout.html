@@ -1,0 +1,119 @@
+<h2>Frontend Layout Options</h2>
+<p class="subtitle">Dashboard page structure — pick what feels right</p>
+
+<div class="cards" style="display:flex;gap:1.5rem;flex-wrap:wrap;margin-top:1.5rem">
+
+  <!-- Option A -->
+  <div class="card" data-choice="a" onclick="toggleSelect(this)" style="flex:1;min-width:260px;cursor:pointer">
+    <div class="card-image" style="padding:1rem;background:#0f172a;border-radius:8px 8px 0 0">
+      <div style="background:#1e293b;border-radius:6px;padding:0.8rem;font-size:0.75rem;color:#94a3b8">
+        <!-- Topbar -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.8rem;padding-bottom:0.5rem;border-bottom:1px solid #334155">
+          <span style="color:#e2e8f0;font-weight:600">💳 PayDash</span>
+          <span style="color:#64748b;font-size:0.7rem">cs@test.com · Logout</span>
+        </div>
+        <!-- Summary cards -->
+        <div style="display:flex;gap:0.5rem;margin-bottom:0.8rem">
+          <div style="flex:1;background:#0f172a;border-radius:4px;padding:0.4rem;text-align:center">
+            <div style="color:#6366f1;font-size:0.9rem;font-weight:700">50</div>
+            <div style="color:#475569;font-size:0.65rem">Total</div>
+          </div>
+          <div style="flex:1;background:#0f172a;border-radius:4px;padding:0.4rem;text-align:center">
+            <div style="color:#10b981;font-size:0.9rem;font-weight:700">32</div>
+            <div style="color:#475569;font-size:0.65rem">Completed</div>
+          </div>
+          <div style="flex:1;background:#0f172a;border-radius:4px;padding:0.4rem;text-align:center">
+            <div style="color:#f59e0b;font-size:0.9rem;font-weight:700">12</div>
+            <div style="color:#475569;font-size:0.65rem">Processing</div>
+          </div>
+          <div style="flex:1;background:#0f172a;border-radius:4px;padding:0.4rem;text-align:center">
+            <div style="color:#ef4444;font-size:0.9rem;font-weight:700">6</div>
+            <div style="color:#475569;font-size:0.65rem">Failed</div>
+          </div>
+        </div>
+        <!-- Filter row -->
+        <div style="display:flex;gap:0.4rem;margin-bottom:0.6rem">
+          <div style="background:#6366f1;color:white;border-radius:999px;padding:0.2rem 0.6rem;font-size:0.65rem">All</div>
+          <div style="background:#0f172a;border:1px solid #334155;color:#64748b;border-radius:999px;padding:0.2rem 0.6rem;font-size:0.65rem">Completed</div>
+          <div style="background:#0f172a;border:1px solid #334155;color:#64748b;border-radius:999px;padding:0.2rem 0.6rem;font-size:0.65rem">Processing</div>
+          <div style="background:#0f172a;border:1px solid #334155;color:#64748b;border-radius:999px;padding:0.2rem 0.6rem;font-size:0.65rem">Failed</div>
+        </div>
+        <!-- Table -->
+        <div style="background:#0f172a;border-radius:4px;overflow:hidden">
+          <div style="display:grid;grid-template-columns:1fr 1.2fr 0.9fr 0.7fr 0.7fr;gap:0.3rem;padding:0.3rem 0.4rem;background:#1e293b;font-size:0.6rem;color:#475569;font-weight:600">
+            <span>ID</span><span>Merchant</span><span>Date</span><span>Amount</span><span>Status</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1.2fr 0.9fr 0.7fr 0.7fr;gap:0.3rem;padding:0.3rem 0.4rem;font-size:0.6rem;color:#94a3b8;border-bottom:1px solid #1e293b">
+            <span>#001</span><span>Merchant A</span><span>2025-05-01</span><span>Rp 50K</span><span style="color:#10b981">●completed</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1.2fr 0.9fr 0.7fr 0.7fr;gap:0.3rem;padding:0.3rem 0.4rem;font-size:0.6rem;color:#94a3b8;border-bottom:1px solid #1e293b">
+            <span>#002</span><span>Merchant B</span><span>2025-05-02</span><span>Rp 75K</span><span style="color:#f59e0b">●processing</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1.2fr 0.9fr 0.7fr 0.7fr;gap:0.3rem;padding:0.3rem 0.4rem;font-size:0.6rem;color:#94a3b8">
+            <span>#003</span><span>Merchant C</span><span>2025-05-03</span><span>Rp 20K</span><span style="color:#ef4444">●failed</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body" style="padding:0.8rem">
+      <h3 style="margin:0 0 0.3rem">A — Top Summary + Filter Pills</h3>
+      <p style="font-size:0.82rem;color:#64748b;margin:0">Summary cards on top, filter as pill tabs, full-width table below. Clean, minimal.</p>
+    </div>
+  </div>
+
+  <!-- Option B -->
+  <div class="card" data-choice="b" onclick="toggleSelect(this)" style="flex:1;min-width:260px;cursor:pointer">
+    <div class="card-image" style="padding:1rem;background:#0f172a;border-radius:8px 8px 0 0">
+      <div style="display:flex;gap:0.6rem;font-size:0.75rem;color:#94a3b8">
+        <!-- Sidebar -->
+        <div style="width:60px;background:#1e293b;border-radius:6px;padding:0.6rem;flex-shrink:0">
+          <div style="color:#6366f1;font-weight:700;font-size:0.8rem;margin-bottom:0.8rem">💳</div>
+          <div style="color:#e2e8f0;font-size:0.65rem;margin-bottom:0.5rem">📊 Dashboard</div>
+          <div style="color:#475569;font-size:0.65rem;margin-bottom:1.5rem">⚙ Settings</div>
+          <div style="color:#475569;font-size:0.6rem">cs@test.com</div>
+        </div>
+        <!-- Main -->
+        <div style="flex:1;background:#1e293b;border-radius:6px;padding:0.6rem">
+          <div style="display:flex;gap:0.4rem;margin-bottom:0.6rem">
+            <div style="flex:1;background:#0f172a;border-radius:4px;padding:0.4rem;text-align:center">
+              <div style="color:#6366f1;font-size:0.85rem;font-weight:700">50</div>
+              <div style="color:#475569;font-size:0.6rem">Total</div>
+            </div>
+            <div style="flex:1;background:#0f172a;border-radius:4px;padding:0.4rem;text-align:center">
+              <div style="color:#10b981;font-size:0.85rem;font-weight:700">32</div>
+              <div style="color:#475569;font-size:0.6rem">Done</div>
+            </div>
+            <div style="flex:1;background:#0f172a;border-radius:4px;padding:0.4rem;text-align:center">
+              <div style="color:#ef4444;font-size:0.85rem;font-weight:700">6</div>
+              <div style="color:#475569;font-size:0.6rem">Failed</div>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.4rem">
+            <span style="font-size:0.65rem;color:#e2e8f0;font-weight:600">Payments</span>
+            <select style="background:#0f172a;border:1px solid #334155;color:#94a3b8;font-size:0.6rem;border-radius:3px;padding:0.1rem 0.3rem">
+              <option>All Status</option>
+            </select>
+          </div>
+          <div style="background:#0f172a;border-radius:4px;overflow:hidden">
+            <div style="display:grid;grid-template-columns:1fr 1fr 0.7fr 0.7fr;gap:0.3rem;padding:0.25rem 0.4rem;background:#0f172a;font-size:0.58rem;color:#475569;font-weight:600">
+              <span>Merchant</span><span>Date</span><span>Amount</span><span>Status</span>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 0.7fr 0.7fr;gap:0.3rem;padding:0.25rem 0.4rem;font-size:0.58rem;color:#94a3b8;border-top:1px solid #1e293b">
+              <span>Merchant A</span><span>2025-05-01</span><span>50K</span><span style="color:#10b981">✓</span>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 0.7fr 0.7fr;gap:0.3rem;padding:0.25rem 0.4rem;font-size:0.58rem;color:#94a3b8;border-top:1px solid #1e293b">
+              <span>Merchant B</span><span>2025-05-02</span><span>75K</span><span style="color:#f59e0b">⟳</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body" style="padding:0.8rem">
+      <h3 style="margin:0 0 0.3rem">B — Sidebar Nav + Dropdown Filter</h3>
+      <p style="font-size:0.82rem;color:#64748b;margin:0">Left sidebar navigation, summary row, dropdown status filter. More scalable if more pages added later.</p>
+    </div>
+  </div>
+
+</div>
+
+<p style="margin-top:1rem;font-size:0.82rem;color:#64748b">Click option to select, then tell me in terminal.</p>

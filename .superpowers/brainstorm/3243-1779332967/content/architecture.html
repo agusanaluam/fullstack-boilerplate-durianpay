@@ -1,0 +1,63 @@
+<h2>System Architecture</h2>
+<p class="subtitle">4-service Docker Compose stack</p>
+
+<div style="display:flex;gap:2rem;flex-wrap:wrap;margin-top:1.5rem">
+
+  <!-- Frontend -->
+  <div style="flex:1;min-width:180px;border:2px solid #6366f1;border-radius:12px;padding:1.2rem">
+    <div class="label" style="color:#6366f1">Frontend :3000</div>
+    <h3 style="margin:0.5rem 0">Vue 3 + TypeScript</h3>
+    <ul style="margin:0;padding-left:1.2rem;font-size:0.85rem;line-height:1.8">
+      <li>shadcn-vue + Tailwind</li>
+      <li>Pinia (auth + payments state)</li>
+      <li>@hey-api/openapi-ts client</li>
+      <li>Vue Router (protected routes)</li>
+    </ul>
+  </div>
+
+  <!-- Arrow -->
+  <div style="display:flex;align-items:center;font-size:1.5rem;color:#94a3b8">→</div>
+
+  <!-- Backend -->
+  <div style="flex:1;min-width:180px;border:2px solid #10b981;border-radius:12px;padding:1.2rem">
+    <div class="label" style="color:#10b981">Backend :8080</div>
+    <h3 style="margin:0.5rem 0">Go + Chi Router</h3>
+    <ul style="margin:0;padding-left:1.2rem;font-size:0.85rem;line-height:1.8">
+      <li>oapi-codegen ServerInterface</li>
+      <li>handler → usecase → repository</li>
+      <li>JWT auth middleware</li>
+      <li>Redis cache on payments</li>
+    </ul>
+  </div>
+
+  <!-- Arrow -->
+  <div style="display:flex;align-items:center;font-size:1.5rem;color:#94a3b8">→</div>
+
+  <!-- Data layer -->
+  <div style="flex:1;min-width:180px;display:flex;flex-direction:column;gap:1rem">
+    <div style="border:2px solid #f59e0b;border-radius:12px;padding:1rem">
+      <div class="label" style="color:#f59e0b">MongoDB :27017</div>
+      <h3 style="margin:0.3rem 0;font-size:1rem">Collections</h3>
+      <ul style="margin:0;padding-left:1.2rem;font-size:0.82rem;line-height:1.8">
+        <li><code>users</code> — email, password_hash, role</li>
+        <li><code>payments</code> — id, merchant, amount, status, created_at</li>
+      </ul>
+    </div>
+    <div style="border:2px solid #ef4444;border-radius:12px;padding:1rem">
+      <div class="label" style="color:#ef4444">Redis :6379</div>
+      <h3 style="margin:0.3rem 0;font-size:1rem">Cache</h3>
+      <ul style="margin:0;padding-left:1.2rem;font-size:0.82rem;line-height:1.8">
+        <li>Key: <code>payments:{status}:{sort}</code></li>
+        <li>TTL: 60s</li>
+        <li>GET /payments hits cache first</li>
+      </ul>
+    </div>
+  </div>
+
+</div>
+
+<div style="margin-top:2rem;padding:1rem;background:#1e293b;border-radius:8px;font-size:0.85rem;color:#94a3b8">
+  <strong style="color:#e2e8f0">Docker Compose services:</strong> mongodb · redis · backend (depends_on: mongodb, redis) · frontend (depends_on: backend)
+</div>
+
+<div style="margin-top:1rem;font-size:0.85rem;color:#64748b">Does this architecture look right? Respond in terminal.</div>
