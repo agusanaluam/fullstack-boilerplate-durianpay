@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    ports:
+      - "8080:8080"
+    volumes:
+      - sqlite_data:/app
+    environment:
+      HTTP_ADDR: ":8080"
+      JWT_SECRET: "change-me-in-production"
+      JWT_EXPIRED: "24h"
+      OPENAPIYAML_LOCATION: "./openapi.yaml"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  sqlite_data:
