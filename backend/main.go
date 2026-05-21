@@ -61,6 +61,13 @@ func initDB(db *sql.DB) error {
 		  password_hash TEXT NOT NULL,
 		  role TEXT NOT NULL
 		);`,
+		`CREATE TABLE IF NOT EXISTS payments (
+		  id         TEXT PRIMARY KEY,
+		  merchant   TEXT NOT NULL,
+		  amount     INTEGER NOT NULL,
+		  status     TEXT NOT NULL CHECK(status IN ('completed','processing','failed')),
+		  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		);`,
 	}
 	for _, s := range stmts {
 		if _, err := db.Exec(s); err != nil {
