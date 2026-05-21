@@ -1,56 +1,85 @@
-# fullstack app
+# Payment Dashboard
 
-Explain your service in here. This is fulltsack project related Payment using golang as backend and nuxt as frontend....
+Internal dashboard for monitoring incoming payments. Go backend + Vue 3 frontend.
 
-list of tools version of your machine:
+## Prerequisites
 
-```bash
-go version go1.25.5 darwin/arm64
-node v24.13.1
-```
+- Go 1.21+
+- Node 20+
+- Docker & Docker Compose
+- make
 
-Install all related requirements:
-
-```bash
-Add here
-```
-
-How to run backend server on local:
+## Quick Start (Docker)
 
 ```bash
-Add here
+# Start full stack
+make up
+
+# In a separate terminal, seed the database
+docker-compose exec backend ./seed
+
+# Open in browser
+open http://localhost:3000
 ```
 
-How to run backend server on production build:
+## Local Development
+
+### Backend
 
 ```bash
-Add here
+cd backend
+cp env.sample .env
+make dep
+make openapi-gen
+make gen-secret
+make seed
+make run
 ```
 
-How to run frontend on local:
+### Frontend
 
 ```bash
-Add here
+cd frontend
+npm install
+npm run gen:api
+npm run dev
 ```
 
-How to run frontend on production build:
+## Test Accounts
+
+| Email | Password | Role |
+|---|---|---|
+| cs@test.com | password | cs |
+| operation@test.com | password | operation |
+
+## API
+
+Spec: `openapi.yaml`
+
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| POST | `/dashboard/v1/auth/login` | No | Login, returns JWT + role |
+| GET | `/dashboard/v1/payments` | Bearer JWT | List payments (filter: status, sort, id) |
+
+## Tests
 
 ```bash
-Add here
+make test           # run all tests
+make test-backend   # Go unit tests
+make test-frontend  # Vitest component + store tests
 ```
 
-To checking openapi documentations, you can visit this url after backend running.
+### Testing Strategy
 
-```bash
-Add here
+**Backend:** Table-driven unit tests with mock interfaces. `auth_test.go` covers login success, wrong password, user not found. `payment_test.go` covers list all, filter by status, sort forwarding.
+
+**Frontend:** Vitest + Vue Test Utils. `auth.spec.ts` verifies store state transitions. `SummaryCards.spec.ts` and `PaymentTable.spec.ts` verify rendering with mock data.
+
+## Architecture
+
+```
+frontend (Vue 3 + TS)  →  backend (Go + Chi)  →  SQLite (dashboard.db)
+     Pinia + hey-api          oapi-codegen
 ```
 
-Login to frontend by visiting:
-
-```bash
-Add here
-```
-
-evidences: Add video evidences of your service
-see backend [README.md](backend/README.md)
-see frontend [README.md](frontend/README.md)
+See `docs/superpowers/specs/2026-05-21-payment-dashboard-design.md` for full design spec.
