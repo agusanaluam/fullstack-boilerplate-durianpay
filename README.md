@@ -4,10 +4,10 @@ Internal dashboard for monitoring incoming payments. Go backend + Vue 3 frontend
 
 ## Prerequisites
 
-- Go 1.21+
-- Node 20+
-- Docker & Docker Compose
-- make
+- Docker & Docker Compose (for quick start)
+- Go 1.21+ (local dev only)
+- Node 22+ (local dev only)
+- make (local dev only — or run commands manually on Windows)
 
 ## Quick Start (Docker)
 
@@ -54,12 +54,13 @@ npm run dev
 
 ## API
 
-Spec: `openapi.yaml`
+Spec: `openapi.yaml` — interactive docs at `http://localhost:8080/swagger`
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
 | POST | `/dashboard/v1/auth/login` | No | Login, returns JWT + role |
 | GET | `/dashboard/v1/payments` | Bearer JWT | List payments (filter: status, sort, id) |
+| GET | `/swagger` | No | Swagger UI |
 
 ## Tests
 
