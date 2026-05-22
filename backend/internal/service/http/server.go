@@ -14,6 +14,7 @@ import (
 	"github.com/durianpay/fullstack-boilerplate/internal/openapigen"
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/cors"
 	oapinethttpmw "github.com/oapi-codegen/nethttp-middleware"
 )
 
@@ -41,6 +42,13 @@ func NewServer(apiHandler openapigen.ServerInterface, openapiYamlPath string) *S
 	}
 
 	r := chi.NewRouter()
+
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:3000", "http://127.0.0.1:3000"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Authorization", "Content-Type"},
+		AllowCredentials: true,
+	}))
 
 	// Public route — no JWT required
 	r.Post("/dashboard/v1/auth/login", wrapper.PostDashboardV1AuthLogin)
