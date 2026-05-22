@@ -1,4 +1,4 @@
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 WORKDIR /app
 # Copy openapi.yaml from repo root (build context = repo root)
 # openapi-ts.config.ts uses '../openapi.yaml' so place it one level up from /app
