@@ -6,7 +6,6 @@ COPY openapi.yaml /openapi.yaml
 COPY frontend/package*.json ./
 RUN npm ci
 COPY frontend/ .
-RUN npm run gen:api
 RUN npm run build
 
 FROM nginx:alpine

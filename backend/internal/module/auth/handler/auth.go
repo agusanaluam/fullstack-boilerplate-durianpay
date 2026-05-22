@@ -32,12 +32,14 @@ func (a *AuthHandler) PostDashboardV1AuthLogin(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(openapigen.LoginResponse{Email: &user.Email, Role: &user.Role, Token: &token})
+	body, err := json.Marshal(openapigen.LoginResponse{Email: &user.Email, Role: &user.Role, Token: &token})
 	if err != nil {
 		transport.WriteAppError(w, entity.ErrorInternal("internal server error"))
 		return
 	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(body) //nolint:errcheck
 }
 
 func decodeJSONBody(w http.ResponseWriter, r *http.Request, dst any) bool {
