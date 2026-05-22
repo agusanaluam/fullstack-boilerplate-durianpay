@@ -35,3 +35,7 @@ openapi-gen: tool-openapi
 gen-secret:
 	@echo "🔐 Generating JWT secret..."
 	@go run ./script/gen-secret/main.go
+
+seed:
+	@echo "Seeding database..."
+	CGO_ENABLED=1 $(go_bin) run ./script/seed/main.go

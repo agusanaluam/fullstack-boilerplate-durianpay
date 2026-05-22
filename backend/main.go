@@ -10,6 +10,9 @@ import (
 	ah "github.com/durianpay/fullstack-boilerplate/internal/module/auth/handler"
 	ar "github.com/durianpay/fullstack-boilerplate/internal/module/auth/repository"
 	au "github.com/durianpay/fullstack-boilerplate/internal/module/auth/usecase"
+	ph "github.com/durianpay/fullstack-boilerplate/internal/module/payment/handler"
+	pr "github.com/durianpay/fullstack-boilerplate/internal/module/payment/repository"
+	pu "github.com/durianpay/fullstack-boilerplate/internal/module/payment/usecase"
 	srv "github.com/durianpay/fullstack-boilerplate/internal/service/http"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/joho/godotenv"
@@ -41,8 +44,13 @@ func main() {
 
 	authH := ah.NewAuthHandler(authUC)
 
+	paymentRepo := pr.NewPaymentRepo(db)
+	paymentUC   := pu.NewPaymentUsecase(paymentRepo)
+	paymentH    := ph.NewPaymentHandler(paymentUC)
+
 	apiHandler := &api.APIHandler{
-		Auth: authH,
+		Auth:    authH,
+		Payment: paymentH,
 	}
 
 	server := srv.NewServer(apiHandler, config.OpenapiYamlLocation)
@@ -60,6 +68,13 @@ func initDB(db *sql.DB) error {
 		  email TEXT NOT NULL UNIQUE,
 		  password_hash TEXT NOT NULL,
 		  role TEXT NOT NULL
+		);`,
+		`CREATE TABLE IF NOT EXISTS payments (
+		  id         TEXT PRIMARY KEY,
+		  merchant   TEXT NOT NULL,
+		  amount     INTEGER NOT NULL,
+		  status     TEXT NOT NULL CHECK(status IN ('completed','processing','failed')),
+		  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 		);`,
 	}
 	for _, s := range stmts {
